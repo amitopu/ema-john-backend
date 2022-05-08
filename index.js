@@ -28,24 +28,44 @@ const run = async () => {
         console.log("DB connected");
 
         // adding products to database
-        app.post("/products", async (req, res) => {
-            const products_list = req.body;
-        });
+        // app.post("/products", async (req, res) => {
+        //     const products_list = req.body;
+        // });
 
         // getting products from database
         app.get("/products", async (req, res) => {
+            console.log("query: ", req.query);
+            const size = parseInt(req.query.size);
+            const page = parseInt(req.query.page);
             const query = {};
             const cursor = productsCollection.find(query);
-            const products = await cursor.toArray();
+            let products;
+            if (page || size) {
+                products = await cursor
+                    .skip(page * size)
+                    .limit(size)
+                    .toArray();
+            } else {
+                products = await cursor.toArray();
+            }
+
             res.send(products);
         });
 
         // finding the number of product
         app.get("/productcount", async (req, res) => {
-            const query = {};
-            const cursor = productsCollection.find(query);
-            const count = await cursor.count();
+            const count = await productsCollection.countDocuments();
             res.send({ count });
+        });
+
+        // use post to get products by keys
+        app.post("/productsByKeys", async (req, res) => {
+            const keys = req.body;
+            const ids = keys.map((key) => ObjectId(key));
+            const query = { _id: { $in: ids } };
+            const products = await productsCollection.find(query).toArray();
+            console.log(keys);
+            res.send(products);
         });
     } finally {
     }
